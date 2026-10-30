@@ -1,77 +1,118 @@
-# RudraNetra — AI/ML-Based Simulated 3D UAV Swarm
+# 3D AI/ML Drone Navigation Simulator
 
-RudraNetra is a comprehensive, deterministic, Python-based simulation for multi-UAV swarm coordination during flood and disaster navigation.
+## 1. Abstract
+This project is a complete, working local 3D AI/ML drone navigation simulator built in Python. It demonstrates autonomous drone navigation in a 3D environment with dynamic obstacles using a hybrid architecture that combines classical 3D A* path planning with a machine learning-based local navigation policy. The simulation features realistic sensor modeling (GPS, IMU, and LiDAR) and dynamic visualization.
 
-The system models a complete, decentralized 3D environment including environment generation, real-time sensing, inter-UAV communication, distributed decision making, dynamic path planning, battery management, target rescue prioritization, and ML-assisted risk prediction.
+## 2. Problem Statement
+Autonomous drone navigation in unknown or dynamic environments is challenging. Pre-planned paths often fail when new obstacles appear. A robust system must continuously perceive its environment, fuse sensor data, and make real-time decisions to avoid collisions while progressing toward a goal.
 
-## Supported Features
+## 3. Objectives
+- Build an interactive 3D simulation environment with randomly generated obstacles.
+- Simulate realistic drone kinematics and sensors (GPS, IMU, LiDAR).
+- Implement a 3D A* algorithm for global path planning.
+- Train and integrate an AI/ML model (Random Forest) for local obstacle avoidance.
+- Create a hybrid navigation system combining global planning and local AI safety overrides.
+- Visualize the simulation comprehensively with a live dashboard.
 
-- **Multi-UAV Swarm Foundation (Module 1):** Distributed simulation state and UAV models.
-- **Simulated Sensors (Module 2):** LiDAR, GPS, IMU, and probabilistic Victim Detection tracking.
-- **3D Flood Environment (Module 3):** Procedurally generated, deterministic maps with varied terrains, obstacles, safe zones, and risk profiles.
-- **Flood Risk Mapping (Module 4):** A global map representation for UAVs to ingest and predict against.
-- **Communication Network (Module 5):** Distance-based, message queue-limited mesh networking between UAVs.
-- **Swarm Area Division (Module 6):** K-Means based geometric partitioning of flood areas to assign dynamic search regions.
-- **Distributed Decision Making (Module 7):** Autonomous, decentralized state evaluation per drone. Prioritizes local hazards, low battery, rescue targets, and regional completion.
-- **Path Planning & Collision Avoidance (Module 8):** A* routing in 3D voxel-space, with explicit temporal conflict resolution across swarm members.
-- **Flight Execution (Module 9):** Kinematic movement over time steps.
-- **Mission Orchestration & Visualization (Modules 10 & 11):** A unified `main.py` entry point and live Matplotlib 3D rendering.
-- **ML Risk Prediction (Module 12):** Scikit-Learn based RandomForest regression for mapping hidden variables to risk priorities.
-- **Dynamic Replanning (Module 13):** Autonomous unassignment and reallocation if tasks become stranded.
-- **Failure Recovery & Battery Management (Module 14):** Feasibility checks, propulsion failure injection, and automated Return-To-Base (RTB).
-- **Target Tracking & Rescue (Module 16):** Probabilistic victim detection, localization noise, multi-drone duplicate resolution, and prioritized rescue actions.
-- **Performance Evaluation (Module 17):** Headless JSON metric generation for complex scenarios.
+## 4. Proposed System & Architecture
+The system employs a Hybrid Controller that defaults to following a 3D A* global path. When the simulated LiDAR detects obstacles within a certain range, the AI/ML model takes over to execute local avoidance maneuvers. A final Safety Layer prevents the drone from entering a critical distance from any obstacle.
 
-## Missing Capabilities & Limitations
-
-- **Complex Multi-Hop RTB:** RTB logic relies on direct path planning to the nearest safe zone. If completely walled off post-failure, the UAV may freeze.
-- **True Vision AI:** Sensor modeling relies on mathematical boundaries and RNG thresholds, rather than loading real images into a CNN.
-- **Dynamic Water Flow:** Flood maps are static in depth relative to ground level. Hydrodynamics are not simulated.
-
-## Installation
-
-Ensure you have Python 3.10+ installed.
-
-```bash
-pip install numpy matplotlib scikit-learn
+```
+             ┌───────────────┐
+             │ 3D Environment│
+             └───────┬───────┘
+                     │
+         ┌───────────┴───────────┐
+         │                       │
+       GPS                      IMU
+         │                       │
+         └───────────┬───────────┘
+                     │
+                   LiDAR
+                     │
+                     ▼
+            ┌─────────────────┐
+            │ Sensor Fusion   │
+            └────────┬────────┘
+                     │
+                     ▼
+            ┌─────────────────┐
+            │ State Estimator │
+            └────────┬────────┘
+                     │
+          ┌──────────┴──────────┐
+          ▼                     ▼
+    ┌───────────┐        ┌────────────┐
+    │ 3D A*     │        │ AI/ML      │
+    │ Global    │        │ Navigation │
+    │ Planner   │        └─────┬──────┘
+    └─────┬─────┘              │
+          └──────────┬─────────┘
+                     ▼
+             ┌──────────────┐
+             │ Hybrid       │
+             │ Controller   │
+             └──────┬───────┘
+                    ▼
+             ┌──────────────┐
+             │ Safety Layer │
+             └──────┬───────┘
+                    ▼
+                ┌───────┐
+                │ Drone │
+                └───┬───┘
+                    │
+                    ▼
+                 Sensors
+                    │
+                    └──── feedback
 ```
 
-## Running the Simulation
+## 5. Technology Stack Explained
+- **Python**: Core programming language.
+- **Ursina Engine**: Chosen for lightweight, interactive, and Pythonic 3D visualization. It easily handles raycasting (LiDAR) and entity management.
+- **NumPy**: Used extensively for vectors, matrices, distance calculations, and sensor noise simulation.
+- **Pandas**: Used for logging simulation data, generating ML datasets, and analyzing sensor readings.
+- **Scikit-Learn**: Used for training the Random Forest AI navigation model.
 
-**Launch the Interactive 3D Demo:**
-```bash
-python main.py
+## 6. Sensor Explanations
+- **LiDAR**: Simulates distance measurements by casting rays in multiple directions within the 3D environment. Crucial for the AI to "see" obstacles.
+- **GPS & IMU**: Provide noisy measurements of position and orientation.
+- **Sensor Fusion**: Combines GPS and IMU data to provide a smoothed estimate of the drone's state.
+
+## 7. AI/ML Methodology
+A Supervised Imitation Learning approach is used for local navigation. 
+1. **Dataset Generation**: We simulate thousands of scenarios with LiDAR distances and goal directions. An expert rule-based policy labels each scenario with a safe action (FORWARD, LEFT, RIGHT, BRAKE, etc.).
+2. **Model Training**: A Random Forest Classifier learns to map LiDAR features to the expert's actions. Random Forest is chosen for its robustness, fast inference time, and interpretability compared to deep reinforcement learning.
+
+## 8. Setup & Execution
+
+1. **Setup Environment**:
+```cmd
+setup.bat
+```
+*(Or manually: `python -m venv .venv`, activate it, and `pip install -r requirements.txt`)*
+
+2. **Generate Training Data**:
+```cmd
+.venv\Scripts\activate
+python scripts\generate_dataset.py
 ```
 
-**Run in Headless Mode (Faster, no UI):**
-```bash
-python main.py --headless
+3. **Train AI Model**:
+```cmd
+python scripts\train.py
 ```
 
-**Run with ML Predictor Enabled:**
-```bash
-python main.py --use-ml
+4. **Run Simulation**:
+```cmd
+run_simulation.bat
 ```
+*(Or manually: `python scripts\run_simulation.py`)*
 
-**Run with Failure Injection Demo:**
-```bash
-python main.py --demo-failure
-```
+Press **ESC** to exit the simulation and save the log file.
 
-**Run with RTB (Low Battery) Demo:**
-```bash
-python main.py --demo-rtb
-```
-
-## Testing & Benchmarking
-
-**Run Unit & Regression Tests (136 Tests):**
-```bash
-python -m unittest discover tests
-```
-
-**Run Performance Evaluation & Stress Testing:**
-```bash
-python evaluation/scenario_runner.py
-```
-*Results will be saved as JSON outputs inside the `results/` folder.*
+## 9. Limitations & Future Improvements
+- The current drone physics model is purely kinematic. A full rigid-body dynamics model with PID controllers for roll/pitch/yaw would increase realism.
+- Sensor fusion uses a simplified weighted average. An Extended Kalman Filter (EKF) would provide better state estimation.
+- The A* planner currently searches a simplified grid; RRT* might be more efficient for complex 3D environments.
